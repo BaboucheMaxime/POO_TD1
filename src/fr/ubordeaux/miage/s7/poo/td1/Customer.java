@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
-public class Customer {
+ public class Customer {
 
     private String firstname;
     private String lastname;
@@ -18,67 +18,115 @@ public class Customer {
     private static HashMap<Integer, String[] > customerHM = new HashMap<Integer, String[]>();
 
     public Customer(String firstname, String lastname, String streetAdress, String mailAdress, String phoneNumber) {
-        containsFirstnameLastname(firstname, lastname);
         id = nextId;
         nextId += 1;
-        checkIdentity(firstname, lastname);
-        checkStreetAdress(streetAdress);
-        checkMailAdress(mailAdress);
-        checkPhoneNumber(phoneNumber);
+        setIdentity(lastname, firstname);
+        setStreetAdress(streetAdress);
+        setMailAdress(mailAdress);
+        setPhoneNumber(phoneNumber);
         System.out.println(String.format("You created the customer -> %s", this.toString()));
     }
 
-    private void containsFirstnameLastname(String firstname, String lastname) {
+    private boolean containsFirstnameLastname(String lastname, String firstname) {
 
         Iterator iterator = customerHM.entrySet().iterator();
 
         while (iterator.hasNext()) {
             Map.Entry mapItem = (Map.Entry) iterator.next();
             String[] names = (String[]) mapItem.getValue();
-            if (names[0] == lastname && names[1] == firstname)
-                throw new IllegalArgumentException(String.format("This customer already exists : %s %s",
-                        firstname, lastname));
-
+            if (names[0] == lastname && names[1] == firstname)return true;
         }
+
+        return false;
     }
 
     /**
      * check the identity formats
      * if true assigns firstname and lastname to the current instance of Customer
      * or throw an IllegalArgumentException
-     * @param firstname
      * @param lastname
+     * @param firstname
      */
-    private void checkIdentity(String firstname, String lastname){
+    private void setIdentity(String lastname, String firstname){
 
         String regex = "([a-zA-Z]{2,30}\\s*)+";
 
-        Pattern pRegex = Pattern.compile(regex);
-        Matcher mFirstname = pRegex.matcher(firstname);
-        Matcher mLastname = pRegex.matcher(lastname);
-        boolean isTrue1 = mFirstname.find();
-        boolean isTrue2 = mLastname.find();
+        if (!containsFirstnameLastname(lastname, firstname)){
 
-        if (isTrue1 && isTrue2){
-            this.firstname = firstname;
-            this.lastname = lastname;
-            String[] val = {lastname, firstname};
-            customerHM.put(id, val);
-        }
+            boolean isTrue1 = isRegexTrue(lastname, regex);
+            boolean isTrue2 = isRegexTrue(firstname, regex);
+
+            if (isTrue1 && isTrue2){
+                this.lastname = lastname;
+                this.firstname = firstname;
+                String[] val = {lastname, firstname};
+                customerHM.put(id, val);
+            }
+            else{
+                throw new IllegalArgumentException(String.format(
+                        "Your identity is not valid : %s %s", firstname, lastname));}
+            }
         else{
-            throw new IllegalArgumentException(String.format("Your identity is not valid : %s %s", firstname, lastname));
+            throw new IllegalArgumentException(String.format(
+                    "This customer already exists : %s %s", firstname, lastname));
         }
     }
 
-    private void checkStreetAdress(String streetAdress){
+     public void setFirstname(String firstname){
+
+         String regex = "([a-zA-Z]{2,30}\\s*)+";
+
+         if (!containsFirstnameLastname(this.lastname, firstname)) {
+
+             boolean bool = isRegexTrue(firstname, regex);
+
+             if (bool) {
+                 this.firstname = firstname;
+                 String[] val = {this.lastname, firstname};
+                 customerHM.replace(this.id, val);
+                 System.out.println(String.format(
+                         "Changed customer firstname to %s", firstname));
+             } else {
+                 throw new IllegalArgumentException(String.format(
+                         "This firstname is not valid : %s", firstname));
+             }
+         }
+         else {
+             throw new IllegalArgumentException(String.format(
+                     "A customer with this identity already exists : %s %s", firstname, lastname));
+         }
+     }
+
+     public void setLastname(String lastname){
+
+         String regex = "([a-zA-Z]{2,30}\\s*)+";
+
+         if (!containsFirstnameLastname(lastname, this.firstname)) {
+
+             boolean bool = isRegexTrue(lastname, regex);
+
+             if (bool) {
+                 this.lastname = lastname;
+                 String[] val = {lastname, this.firstname};
+                 customerHM.replace(this.id, val);
+                 System.out.println(String.format(
+                         "Changed customer lastname to %s", lastname));
+             } else {
+                 throw new IllegalArgumentException(String.format(
+                         "This lastname is not valid : %s", lastname));
+             }
+         }
+         else {
+             throw new IllegalArgumentException(String.format(
+                     "A customer with this identity already exists : %s %s", this.firstname, lastname));
+         }
+     }
+
+     public void setStreetAdress(String streetAdress){
 
         String regex = "[A-Za-z0-9'\\.\\-\\s\\,]";
 
-        Pattern pRegex = Pattern.compile(regex);
-        Matcher mAdress = pRegex.matcher(streetAdress);
-        boolean isTrue = mAdress.find();
-
-        if (isTrue==true){
+        if (isRegexTrue(streetAdress, regex)){
             this.streetAdress = streetAdress;
         }
         else{
@@ -92,7 +140,7 @@ public class Customer {
      * else throw an IllegalArgumentException
      * @param mailAdress
      */
-    private void checkMailAdress(String mailAdress) {
+    public void setMailAdress(String mailAdress) {
 
         //copied from https://stackoverflow.com/questions/2762977/regular-expression-for-email-validation-in-java
 
@@ -100,11 +148,8 @@ public class Customer {
 
         String regex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
 
-        Pattern pRegex = Pattern.compile(regex);
-        Matcher mMail = pRegex.matcher(mailAdress);
-        boolean isTrue = mMail.find();
 
-        if (isTrue==true){
+        if (isRegexTrue(mailAdress, regex)){
             this.mailAdress = mailAdress;
         }
         else{
@@ -112,20 +157,27 @@ public class Customer {
         }
     }
 
-    private void checkPhoneNumber(String phoneNumber){
+     public void setPhoneNumber(String phoneNumber){
 
         String regex = "^((\\+)33|0)[1-9](\\d{2}){4}$";
 
-        Pattern pRegex = Pattern.compile(regex);
-        Matcher mPhone = pRegex.matcher(phoneNumber);
-        boolean isTrue = mPhone.find();
-
-        if (isTrue==true){
+        if (isRegexTrue(phoneNumber, regex)){
             this.phoneNumber = phoneNumber;
         }
         else{
             throw new IllegalArgumentException(String.format("Your phone number is not valid : %s", phoneNumber));
         }
+    }
+
+    private boolean isRegexTrue(String arg, String regex){
+
+        boolean isTrue = false;
+
+        Pattern pRegex = Pattern.compile(regex);
+        Matcher matcher = pRegex.matcher(arg);
+        isTrue = matcher.find();
+
+        return isTrue;
     }
 
     @Override

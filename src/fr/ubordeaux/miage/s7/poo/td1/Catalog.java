@@ -25,6 +25,14 @@ public class Catalog {
             nextId+=1;
             System.out.println("You created the product -> " + name);
         }
+
+        private Product(String name, double price, int id){
+
+            this.name = name;
+            this.price = price;
+            this.id = id;
+            System.out.println("You updated the price of the product -> " + name);
+        }
     }
 
     //singleton
@@ -74,6 +82,31 @@ public class Catalog {
         return id;
     }
 
+    public void setPrice(Object instance, int id, double price) {
+
+        if (!(instance instanceof Basket)){
+            if (productHM.containsKey(id)) {
+                String name = this.productHM.get(id).name;
+                int quantity = this.quantityHM.get(id);
+
+                this.productHM.remove(id);
+                this.quantityHM.remove(id);
+
+                Product newProduct = new Product(name, price, id);
+
+                productHM.put(id, newProduct);
+                quantityHM.put(id, quantity);
+            }
+            else {
+                throw new IllegalArgumentException(String.format(
+                        "Product id <%d> does not exist in catalog. Abort update", id));
+
+            }}
+        else {
+            throw new IllegalCallerException("Cannot be accessed by a Basket Object");
+        }
+    }
+
     /**
      * Get a product instance by its id or throw a IllegalArgumentException if id does not exist
      * @param key id
@@ -88,33 +121,46 @@ public class Catalog {
         }
     }
 
-    /**
-     * Check if available quantity is sufficient for requested quantity
-     * @param productID
-     * @param requestedQty quantity to add to a basket for exemple
-     * @return
-     */
-    public boolean checkAvailableQuantity(int productID, int requestedQty) {
+    public void inc(Object instance, int productID, int qty) {
 
-        if (productHM.containsKey(productID)){
-
+        if (instance instanceof Basket) {
             int availableQty = quantityHM.get(productID);
 
-            if (availableQty >= requestedQty) {
-                quantityHM.replace(productID, availableQty - requestedQty);
+            quantityHM.replace(productID, availableQty + qty);
+        }
+        else {
+            throw new IllegalCallerException("Can only be accessed by a basket");
+        }
+    }
+
+    public boolean dec(Object instance, int productID, int qty){
+
+        if (instance instanceof Basket) {
+            int availableQty = quantityHM.get(productID);
+
+            if (availableQty - qty >= 0) {
+                quantityHM.replace(productID, availableQty - qty);
                 return true;
-            } else {
-                return false;
+            }
+            else {
+                throw new IllegalArgumentException(String.format(
+                        "Out of stock for %s. Requested %d but only %d available in stock."
+                        , this.productHM.get(productID).name, qty, availableQty));
             }
         }
         else {
-            throw new IllegalArgumentException(String.format("Product ID n°%s does not exist in catalog.", productID));
+            throw new IllegalCallerException("Can only be accessed by a basket");
         }
     }
 
     public String getProductName(int id){
 
         return this.productHM.get(id).name;
+    }
+
+    public double getProductPrice(int id){
+
+        return this.productHM.get(id).price;
     }
 
     @Override
@@ -129,11 +175,14 @@ public class Catalog {
             int id = (int)mapItem.getKey();
             Product product = (Product) mapItem.getValue();
             String name = product.name;
+            double price = product.price;
             int quantity = quantityHM.get(id);
             content.append("{id: ");
             content.append(id);
             content.append(", {produit: ");
             content.append(name);
+            content.append(", {price: ");
+            content.append(price);
             content.append(", stock: ");
             content.append(quantity);
             content.append("}}, ");
